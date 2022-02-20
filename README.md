@@ -1,2 +1,4 @@
-# Azure_Pipelines_Examples
-A repo with examples of Azure yaml pipelines
+# Azure Pipelines Examples
+
+A repo with examples of Azure yaml pipelines.
+
