@@ -1,0 +1,72 @@
+resources:
+- repo: self
+
+variables:
+  vmImageName: 'ubuntu-latest'
+  artifactName: 'BooksCatalog-FrontNext-Deploy'
+
+stages:
+- stage: BuildAndValidations
+  displayName: Build do App em Nextjs
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '14.x'
+      displayName: 'Install Node.js'
+
+    - script: npm install
+      displayName: 'npm install'
+
+    - script: npm run lint
+      displayName: 'npm run lint'
+
+    - script: npm run build
+      displayName: 'npm run build'
+
+    - task: PublishPipelineArtifact@1
+      displayName: Publish do Artifact
+      inputs:
+        targetPath: './' 
+        artifactName: $(artifactWebApp)
+
+- stage: DeployInAzureWebAppByCode
+  displayName: Deploy in Azure WebApp by Code
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: PRD
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          
+          - task: DownloadPipelineArtifact@2
+            displayName: Download do Artifact
+            inputs:
+              buildType: 'current'
+              artifactName: $(artifactWebApp)
+              targetPath: '$(System.DefaultWorkingDirectory)/publish'
+
+          - task: ArchiveFiles@2
+            displayName: 'Zipping'
+            inputs:
+              rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish/' 
+              includeRootFolder: false 
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip' 
+          
+          - task: AzureWebApp@1
+            displayName: 'Deploying'
+            inputs:
+              azureSubscription: 'twitch-devops-live'
+              appType: 'webAppLinux'
+              appName: 'livepipelinenext'
+              package: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+              runtimeStack: 'NODE|14-lts'
