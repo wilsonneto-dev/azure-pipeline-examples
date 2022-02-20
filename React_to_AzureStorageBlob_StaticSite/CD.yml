@@ -1,0 +1,63 @@
+
+resources:
+- repo: self
+
+variables:
+  vmImageName: 'ubuntu-latest'
+  artifactName: 'BooksCatalog-FrontStatic-Deploy'
+
+stages:
+- stage: BuildAndValidations
+  displayName: Build do App em React
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '14.x'
+      displayName: 'Install Node.js'
+
+    - script: npm install
+      displayName: 'npm install'
+
+    - script: npm run build
+      displayName: 'npm run build'
+
+    - script: npm run test
+      displayName: 'npm run test'
+
+    - task: PublishPipelineArtifact@1
+      displayName: Publish do Artifact
+      inputs:
+        targetPath: './build' 
+        artifactName: $(artifactWebApp)
+
+- stage: DeployInAzureStorage
+  displayName: Deploy in Azure Storage
+  jobs:
+  - deployment: Upload
+    displayName: Upload files
+    environment: PRD
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          
+          - task: DownloadPipelineArtifact@2
+            displayName: Download do Artifact gerado no stage de Build
+            inputs:
+              buildType: 'current'
+              artifactName: $(artifactWebApp)
+              targetPath: '$(System.DefaultWorkingDirectory)/publish'
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'twitch-devops-live'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: 'az storage blob upload-batch --account-name twitchpipeliensreact --account-key YOUR_STORAGE_ACCOUNT_KEY --destination ''$web'' --source $(System.DefaultWorkingDirectory)/publish/'
