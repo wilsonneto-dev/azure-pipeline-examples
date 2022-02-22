@@ -8,7 +8,7 @@ resources:
 variables:
   buildConfiguration: 'release'
   vmImageName: 'ubuntu-latest'
-  artifactName: 'BooksCatalog-deploy'
+  artifactName: 'YOUR-APP-NAME-deploy'
 
 stages:
 - stage: Build
@@ -29,13 +29,13 @@ stages:
     - task: DotNetCoreCLI@2
       inputs:
         command: 'build'
-        projects: './BooksCatalog.sln'
+        projects: './PROJECT-SOLUTION.sln'
         arguments: '--configuration $(buildConfiguration)'
       displayName: 'dotnet build $(buildConfiguration)'
     - task: DotNetCoreCLI@2
       inputs:
         command: 'test'
-        projects: "./BooksCatalog.sln"
+        projects: "./PROJECT-SOLUTION.sln"
         arguments: '--configuration $(buildConfiguration)'
       displayName: 'dotnet test $(buildConfiguration)'
     - task: DotNetCoreCLI@2
@@ -72,7 +72,7 @@ stages:
               targetPath: '$(System.DefaultWorkingDirectory)/publish'
           - task: AzureWebApp@1
             inputs:
-              azureSubscription: 'twitch-devops-live'
+              azureSubscription: 'SERVICE-CONNECTION-NAME'
               appType: 'webAppLinux'
-              appName:  'testingpipelinesdotnet'
+              appName:  'WEB-APP-NAME'
               package: '$(System.DefaultWorkingDirectory)/publish/*.zip'
