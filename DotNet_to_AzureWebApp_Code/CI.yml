@@ -8,7 +8,7 @@ resources:
 variables:
   buildConfiguration: 'release'
   vmImageName: 'ubuntu-latest'
-  artifactName: 'BooksCatalog-CI'
+  artifactName: 'APP-NAME-CI'
 
 stages:
 - stage: Build
