@@ -29,13 +29,13 @@ stages:
     - task: DotNetCoreCLI@2
       inputs:
         command: 'build'
-        projects: './BooksCatalog.sln'
+        projects: './PROJECT-SOLUTION.sln'
         arguments: '--configuration $(buildConfiguration)'
       displayName: 'dotnet build $(buildConfiguration)'
     - task: DotNetCoreCLI@2
       inputs:
         command: 'test'
-        projects: "./BooksCatalog.sln"
+        projects: "./PROJECT-SOLUTION.sln"
         arguments: '--configuration $(buildConfiguration)'
       displayName: 'dotnet test $(buildConfiguration)'
     - task: DotNetCoreCLI@2
