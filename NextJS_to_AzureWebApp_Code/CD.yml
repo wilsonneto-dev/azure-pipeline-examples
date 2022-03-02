@@ -1,9 +1,11 @@
+trigger: [none]
+
 resources:
 - repo: self
 
 variables:
   vmImageName: 'ubuntu-latest'
-  artifactName: 'BooksCatalog-FrontNext-Deploy'
+  artifactName: 'PROJECT-NAME-Deploy'
 
 stages:
 - stage: BuildAndValidations
@@ -22,16 +24,18 @@ stages:
     - script: npm install
       displayName: 'npm install'
 
-    - script: npm run lint
-      displayName: 'npm run lint'
-
     - script: npm run build
       displayName: 'npm run build'
+
+    - script: |
+        zip -r --symlinks '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip' .
+      displayName: 'ZIP with SymLinks'
+      workingDirectory: '.'
 
     - task: PublishPipelineArtifact@1
       displayName: Publish do Artifact
       inputs:
-        targetPath: './' 
+        targetPath: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip' 
         artifactName: $(artifactWebApp)
 
 - stage: DeployInAzureWebAppByCode
@@ -53,21 +57,13 @@ stages:
               buildType: 'current'
               artifactName: $(artifactWebApp)
               targetPath: '$(System.DefaultWorkingDirectory)/publish'
-
-          - task: ArchiveFiles@2
-            displayName: 'Zipping'
-            inputs:
-              rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish/' 
-              includeRootFolder: false 
-              archiveType: 'zip'
-              archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip' 
-          
+        
           - task: AzureWebApp@1
             displayName: 'Deploying'
             inputs:
-              azureSubscription: 'twitch-devops-live'
+              azureSubscription: 'SERVICE-SUBSCRIPTION'
               appType: 'webAppLinux'
-              appName: 'livepipelinenext'
-              package: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+              appName: 'WEB-APP-NAME'
+              package: '$(System.DefaultWorkingDirectory)/publish/$(Build.BuildId).zip'
               runtimeStack: 'NODE|14-lts'
-              startUpCommand: 'npm run start'
+              startUpCommand: 'npm start'
