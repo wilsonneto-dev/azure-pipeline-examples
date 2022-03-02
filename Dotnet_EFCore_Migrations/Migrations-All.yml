@@ -1,0 +1,83 @@
+trigger:
+- none
+
+variables:
+  buildConfiguration: 'release'
+  vmImageName: 'ubuntu-latest'
+#  artifactName: 'APP-NAME-CI'
+
+stages:
+- stage: GenerateScripts
+  displayName: Build da Web App
+  jobs:
+  - job: GenerateScripts
+    displayName: Geberate SQL Migrations Scripts
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+      - task: UseDotNet@2
+        displayName: Instalar .NET 6
+        inputs:
+          packageType: 'sdk'
+          version: '6.0.x'
+
+      - script: dotnet --version
+        displayName: Exibir versão default do .NET
+
+      - task: DotNetCoreCLI@2
+        inputs:
+          command: 'build'
+          projects: './SOLUTION-NAME.sln'
+          arguments: '--configuration $(buildConfiguration)'
+        displayName: 'dotnet build $(buildConfiguration)'
+
+      - task: DotNetCoreCLI@2
+        displayName: Install EF Tool
+        inputs:
+          command: custom
+          custom: 'tool '
+          arguments: install dotnet-ef --global
+      
+      - task: DotNetCoreCLI@2
+        displayName: Create SQL Scripts
+        inputs:
+          command: custom
+          custom: 'ef '
+          arguments: migrations script --output ./migrations.sql --idempotent --project ./src/PROJECT-NAME.Infra.Persistence/PROJECT-NAME.Infra.Persistence.csproj -s ./src/PROJECT-NAME.Api/PROJECT-NAME.Api.csproj
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: SQLScripts'
+        inputs:
+          PathtoPublish: ./migrations.sql
+          ArtifactName: MigrationsScript
+          
+- stage: UpdatingDatabase
+  displayName: UpdatingDatabase
+  dependsOn: GenerateScripts
+
+  jobs:
+
+  - job: UpdatingDatabase
+    displayName: Updating Database
+    pool:
+      vmImage: windows-2022
+    steps:
+
+    - task: DownloadPipelineArtifact@2
+      displayName: Download do Artifact gerado no stage de ScriptGeneration
+      inputs:
+        buildType: 'current'
+        artifactName: MigrationsScript
+        targetPath: './'
+
+    - task: SqlAzureDacpacDeployment@1
+      inputs:
+        azureSubscription: 'Az Personal(27ccacca-023f-49cd-ac04-644c20f0bdec)'
+        AuthenticationType: 'server'
+        ServerName: 'SERVER-NAME.database.windows.net'
+        DatabaseName: 'DATABASE-NAME'
+        SqlUsername: 'USER'
+        SqlPassword: 'PASS'
+        deployType: 'SqlTask'
+        SqlFile: './migrations.sql'
+        IpDetectionMethod: 'AutoDetect'
