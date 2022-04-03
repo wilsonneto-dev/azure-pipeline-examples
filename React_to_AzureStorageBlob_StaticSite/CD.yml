@@ -60,4 +60,4 @@ stages:
               azureSubscription: 'twitch-devops-live'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
-              inlineScript: 'az storage blob upload-batch --account-name twitchpipeliensreact --account-key YOUR_STORAGE_ACCOUNT_KEY --destination ''$web'' --source $(System.DefaultWorkingDirectory)/publish/'
+              inlineScript: 'az storage blob upload-batch --account-name [ACCOUNT-NAME] --account-key [STORAGE-ACCOUNT-KEY] --destination ''$web'' --source $(System.DefaultWorkingDirectory)/publish/'
