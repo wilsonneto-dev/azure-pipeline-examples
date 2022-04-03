@@ -4,7 +4,7 @@ resources:
 
 variables:
   vmImageName: 'ubuntu-latest'
-  artifactName: 'BooksCatalog-FrontStatic-Deploy'
+  artifactName: '[ARTIFACT-NAME]-Deploy'
 
 stages:
 - stage: BuildAndValidations
