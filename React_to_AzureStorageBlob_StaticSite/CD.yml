@@ -57,7 +57,7 @@ stages:
 
           - task: AzureCLI@2
             inputs:
-              azureSubscription: 'twitch-devops-live'
+              azureSubscription: '[SUBSCRIPTION-CONNECTION]'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: 'az storage blob upload-batch --account-name [ACCOUNT-NAME] --account-key [STORAGE-ACCOUNT-KEY] --destination ''$web'' --source $(System.DefaultWorkingDirectory)/publish/'
