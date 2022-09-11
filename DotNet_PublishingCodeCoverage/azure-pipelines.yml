@@ -1,0 +1,45 @@
+trigger:
+- main
+- develop
+
+variables:
+  buildConfiguration: 'release'
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build da Web App
+  jobs:
+  - job: Build
+    displayName: Build da Web App em .NET
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+
+    - task: UseDotNet@2
+      displayName: Instalar .NET 6
+      inputs:
+        packageType: 'sdk'
+        version: '6.0.x'
+
+    - script: dotnet --version
+      displayName: Exibir versão default do .NET
+
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'build'
+        projects: './Domain.sln'
+        arguments: '--configuration $(buildConfiguration)'
+      displayName: 'dotnet build $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'test'
+        projects: "./Domain.sln"
+        arguments: '--configuration $(buildConfiguration) --collect "Xplat code coverage"'
+      displayName: 'dotnet test $(buildConfiguration)'
+    
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
