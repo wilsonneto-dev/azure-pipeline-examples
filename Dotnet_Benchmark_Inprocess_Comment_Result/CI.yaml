@@ -6,9 +6,9 @@ trigger:
 
 variables:
 # // ....
-  benchmarkProjectPath: ./src/Tests/Logistics.Shipping.Dhl.Benchmark.Tests
-  benchmarkProjectName: Logistics.Shipping.Dhl.Benchmark.Tests
-  benchmarkClassName: ShipmentProviderBenchmark
+  benchmarkProjectPath: ./src/Tests/Project.Benchmark.Tests
+  benchmarkProjectName: Project.Benchmark.Tests
+  benchmarkClassName: ExampleProviderBenchmark
 
 stages:
 # // ...
