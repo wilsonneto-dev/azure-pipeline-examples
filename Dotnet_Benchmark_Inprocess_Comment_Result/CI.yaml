@@ -1,0 +1,88 @@
+trigger:
+ branches:
+   include:
+   - master
+   - develop/*
+
+variables:
+# // ....
+  benchmarkProjectPath: ./src/Tests/Logistics.Shipping.Dhl.Benchmark.Tests
+  benchmarkProjectName: Logistics.Shipping.Dhl.Benchmark.Tests
+  benchmarkClassName: ShipmentProviderBenchmark
+
+stages:
+# // ...
+- stage: BenchmarkAnalyses
+  dependsOn: Build
+  jobs:
+  - job: Benchmark
+    continueOnError: true
+    steps:
+    - checkout: self
+      clean: true
+      
+    - task: UseDotNet@2
+      displayName: Instalar .NET 6
+      inputs:
+        packageType: 'sdk'
+        version: '6.0.x'
+        
+    - script: dotnet --version
+      displayName: Show dotnet version
+      
+    - task: NuGetAuthenticate@1
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Running benchmark'
+      inputs:
+        command: 'run'
+        projects: '$(benchmarkProjectPath)/$(benchmarkProjectName).csproj'
+        arguments: '--configuration release'
+        
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish benchmark results'
+      inputs:
+        PathtoPublish: ./BenchmarkDotNet.Artifacts/results
+        ArtifactName: BenchmarkResults
+        
+    - script: |
+        git clone https://github.com/dotnet/performance dotnet_perf
+        pushd dotnet_perf/src/tools/ResultsComparer
+        dotnet build -c release
+        popd
+      displayName: 'Downloading Comparer'
+      
+    - script: |
+        dotnet ./dotnet_perf/artifacts/bin/ResultsComparer/Release/net6.0/ResultsComparer.dll --base $(benchmarkProjectPath)/base --diff ./BenchmarkDotNet.Artifacts --threshold '10%'
+      displayName: 'Running comparer'
+      
+    - task: PowerShell@2
+      condition: eq(variables['Build.Reason'], 'PullRequest')
+      displayName: Post Message to PR
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        System_PullRequest_PullRequestId: $(System.PullRequest.PullRequestId)  
+        Build_Repository_Name: $(Build.Repository.Name)  
+        benchmarkProjectName: $(benchmarkProjectName)  
+        benchmarkClassName: $(benchmarkClassName)
+        benchmarkProjectPath: $(benchmarkProjectPath)
+      inputs:
+        targetType: 'inline'
+        script: |
+          $currentText = (Get-Content ./BenchmarkDotNet.Artifacts/results/$env:benchmarkProjectName.$env:benchmarkClassName-report-default.md -Raw).Replace(":|", "|")
+          $baselineText = (Get-Content $env:benchmarkProjectPath/base/results/$env:benchmarkProjectName.$env:benchmarkClassName-report-default.md -Raw).Replace(":|", "|")
+          $comparerText = ((dotnet ./dotnet_perf/artifacts/bin/ResultsComparer/Release/net6.0/ResultsComparer.dll --base $env:benchmarkProjectPath/base --diff ./BenchmarkDotNet.Artifacts --threshold '10%') -join "`n").Replace(":|", "|")
+          $body = @"
+          {
+              "comments": [
+                {
+                  "parentCommentId": 0,
+                  "content": "This version benchmark: `n`n$currentText`n`nBaseline benchmark:`n`n$baselineText`n`Benchmark comparer:`n`n$comparerText",
+                  "commentType": 1
+                }
+              ],
+              "status": 4
+            }
+          "@
+          $url = "https://dev.azure.com/COMPANY-NAME/$env:SYSTEM_TEAMPROJECTID/_apis/git/repositories/$env:Build_Repository_Name/pullRequests/$env:System_PullRequest_PullRequestId/threads?api-version=5.1"
+          $result = Invoke-RestMethod -Uri $url -Method POST -Headers @{Authorization = "Bearer $(System.AccessToken)"} -Body $Body -ContentType application/json
